@@ -81,7 +81,10 @@ export default function ClientDiscoveryForm() {
     referenceWebsites: "",
   });
 
-  const updateField = <K extends keyof DiscoveryFormData>(key: K, value: DiscoveryFormData[K]) => {
+  const updateField = <K extends keyof DiscoveryFormData>(
+    key: K,
+    value: DiscoveryFormData[K],
+  ) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -96,21 +99,58 @@ export default function ClientDiscoveryForm() {
       updateField("whatTheyNeed", [...current, service]);
     }
   };
+  const isValidEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
 
-  const nextStep = () => setStep((s) => Math.min(s + 1, 4));
-  const prevStep = () => setStep((s) => Math.max(s - 1, 1));
+  const isValidPhone = (phone: string) => {
+    return /^[0-9+\-\s()]{10,15}$/.test(phone.trim());
+  };
 
+  const hasMinimumWords = (text: string, minWords = 5) => {
+    return text.trim().split(/\s+/).filter(Boolean).length >= minWords;
+  };
+
+const nextStep = () => {
+  if (isStepInvalid()) return;
+
+  setStep((s) => Math.min(s + 1, 4));
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth",
+  });
+};
+
+  const prevStep = () => {
+    setStep((s) => Math.max(s - 1, 1));
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
   // Validation function to physically protect step access
   const isStepInvalid = () => {
     switch (step) {
       case 1:
-        return !formData.clientName.trim() || !formData.businessName.trim();
+        return (
+          formData.clientName.trim().length < 3 ||
+          formData.businessName.trim().length < 2
+        );
+
       case 2:
-        return !formData.email.trim() || !formData.phone.trim();
+        return !isValidEmail(formData.email) || !isValidPhone(formData.phone);
+
       case 3:
-        return formData.whatTheyNeed.length === 0 || !formData.goals.trim();
+        return (
+          formData.whatTheyNeed.length === 0 ||
+          !hasMinimumWords(formData.goals, 5)
+        );
+
       case 4:
         return !formData.budget || !formData.timeline;
+
       default:
         return false;
     }
@@ -304,6 +344,11 @@ export default function ClientDiscoveryForm() {
                           placeholder="example@domain.com"
                           className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-[#FF1A1A] focus:bg-white/8 transition-all"
                         />
+                        {formData.email && !isValidEmail(formData.email) && (
+                          <p className="text-red-400 text-xs mt-2">
+                            Please enter a valid email address.
+                          </p>
+                        )}
                       </div>
 
                       <div>
@@ -318,6 +363,11 @@ export default function ClientDiscoveryForm() {
                           placeholder="Enter phone number"
                           className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-[#FF1A1A] focus:bg-white/8 transition-all"
                         />
+                        {formData.phone && !isValidPhone(formData.phone) && (
+                          <p className="text-red-400 text-xs mt-2">
+                            Please enter a valid phone number.
+                          </p>
+                        )}
                       </div>
                     </div>
                   </motion.div>
@@ -365,6 +415,13 @@ export default function ClientDiscoveryForm() {
                               </button>
                             );
                           })}
+                          {formData.goals &&
+                            !hasMinimumWords(formData.goals, 5) && (
+                              <p className="text-red-400 text-xs mt-2">
+                                Please provide more details about your project
+                                goals.
+                              </p>
+                            )}
                         </div>
                       </div>
 
