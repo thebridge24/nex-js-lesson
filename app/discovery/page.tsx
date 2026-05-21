@@ -13,6 +13,7 @@ import {
   Phone,
   Check,
 } from "lucide-react";
+import Image from "next/image";
 
 interface DiscoveryFormData {
   clientName: string;
@@ -203,6 +204,7 @@ const nextStep = () => {
       <div className="w-full max-w-2xl relative z-10">
         {/* Header Section */}
         <div className="text-center mb-10">
+            <Image src="/stack-gate_red_on_black.png" alt="" width={36} height={36} className="rounded-full mx-auto mb-4 p-1 border border-[#FF1A1A]/30" />
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#FF1A1A]/30 bg-[#FF1A1A]/5 mb-4">
             <span className="text-[10px] uppercase tracking-[0.2em] font-semibold text-[#FF1A1A]">
               Client Discovery
@@ -219,7 +221,7 @@ const nextStep = () => {
 
         {/* Progress Tracker */}
         {!isSubmitted && (
-          <div className="w-full h-0.5 bg-white/10 mb-8 rounded-full overflow-hidden">
+          <div className="w-full h-0.5 md:h-1 bg-white/10 mb-8 rounded-full overflow-hidden">
             <motion.div
               className="h-full bg-[#FF1A1A]"
               animate={{ width: `${(step / 4) * 100}%` }}
