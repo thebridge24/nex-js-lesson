@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/public/preview.png",
+        url: "/preview.png",
         width: 1200,
         height: 630,
         alt: "Stackgate Project Inquiry Form",
