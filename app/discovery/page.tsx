@@ -155,7 +155,7 @@ export default function ClientDiscoveryForm() {
   };
 
   return (
-    <main className="min-h-screen bg-black font-sans text-white flex flex-col items-center justify-center md:px-6 py-12 relative overflow-hidden">
+    <main className="min-h-screen bg-black font-sans text-white flex flex-col items-center justify-center p-4 md:px-6 py-12 relative overflow-hidden">
       {/* Background Lighting Effects */}
       <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[50%] bg-[#FF1A1A]/20 rounded-full blur-[150px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#990000]/20 rounded-full blur-[120px] pointer-events-none" />
