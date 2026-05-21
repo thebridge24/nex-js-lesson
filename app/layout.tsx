@@ -16,11 +16,20 @@ export const metadata: Metadata = {
   title: "Project Inquiry Form | Stackgate",
   description:
     "Tell us about your business, project idea, goals, and budget so we can help you build the right solution.",
+
   openGraph: {
     title: "Project Inquiry Form | Stackgate",
     description:
       "Share your project details with Stackgate International.",
     type: "website",
+    images: [
+      {
+        url: "/public/preview.png",
+        width: 1200,
+        height: 630,
+        alt: "Stackgate Project Inquiry Form",
+      },
+    ],
   },
 };
 
