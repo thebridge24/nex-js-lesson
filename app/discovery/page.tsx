@@ -31,7 +31,6 @@ interface DiscoveryFormData {
 
 type CurrencyType = "NGN" | "USD" | "EUR" | "GBP";
 
-// Core services — written in simple business-friendly language
 const SERVICE_OPTIONS = [
   "Business Website Design",
   "Company Portfolio Website",
@@ -53,7 +52,6 @@ const SERVICE_OPTIONS = [
   "Website Speed & Performance Optimization",
 ];
 
-// Premium scaled budget matrix for international anchoring
 const BUDGET_DATA: Record<CurrencyType, string[]> = {
   NGN: [
     "₦500,000 - ₦1,500,000",
@@ -100,7 +98,8 @@ export default function ClientDiscoveryForm() {
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [currency, setCurrency] = useState<CurrencyType>("USD"); // Default to high-ticket USD baseline globally
+  const [currency, setCurrency] = useState<CurrencyType>("USD");
+  const [formError, setFormError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     clientName: "",
@@ -114,31 +113,50 @@ export default function ClientDiscoveryForm() {
     referenceWebsites: "",
   });
 
-  // Automated IP-geolocation lookup
   useEffect(() => {
     async function detectClientCurrency() {
       try {
         const response = await fetch("https://ipapi.co/json/");
         const data = await response.json();
-        
+
         if (data.country_code === "NG") {
           setCurrency("NGN");
         } else if (data.country_code === "GB") {
           setCurrency("GBP");
-        } else if (["AT", "BE", "CY", "EE", "FI", "FR", "DE", "GR", "IE", "IT", "LV", "LT", "LU", "MT", "NL", "PT", "SK", "SI", "ES"].includes(data.country_code)) {
+        } else if (
+          [
+            "AT",
+            "BE",
+            "CY",
+            "EE",
+            "FI",
+            "FR",
+            "DE",
+            "GR",
+            "IE",
+            "IT",
+            "LV",
+            "LT",
+            "LU",
+            "MT",
+            "NL",
+            "PT",
+            "SK",
+            "SI",
+            "ES",
+          ].includes(data.country_code)
+        ) {
           setCurrency("EUR");
         } else {
           setCurrency("USD");
         }
       } catch (error) {
-        // Fall back cleanly to premium USD if lookup is blocked by extension
         setCurrency("USD");
       }
     }
     detectClientCurrency();
   }, []);
 
-  // Sync chosen budget option smoothly if currency changes mid-session
   const handleCurrencySwitch = (targetCurrency: CurrencyType) => {
     const currentIndex = BUDGET_DATA[currency].indexOf(formData.budget);
     setCurrency(targetCurrency);
@@ -224,18 +242,78 @@ export default function ClientDiscoveryForm() {
       timeline: "",
       referenceWebsites: "",
     });
+    setFormError(null);
     setStep(1);
     setIsSubmitted(false);
   };
 
+  // Modern Web3Forms Submission logic utilizing state object properties directly
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isStepInvalid()) return;
 
     setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setIsSubmitting(false);
-    setIsSubmitted(true);
+    setFormError(null);
+
+    try {
+      const submissionBody = new FormData();
+      submissionBody.append(
+        "access_key",
+        "2a3e336c-e518-482a-b637-f5a17556c704",
+      );
+      submissionBody.append(
+        "subject",
+        `New Project Lead: ${formData.businessName}`,
+      );
+      submissionBody.append(
+        "from_name",
+        `${formData.clientName} | Discovery Form`,
+      );
+      submissionBody.append("replyto", formData.email); // Direct replies to client
+      submissionBody.append("theme", "red");
+      // Clean up structured parameters for incoming layout design on dashboard/email
+      submissionBody.append("Client Name", formData.clientName);
+      submissionBody.append("Business Name", formData.businessName);
+      submissionBody.append("Email Address", formData.email);
+      submissionBody.append("Phone / WhatsApp", formData.phone);
+      submissionBody.append(
+        "Requested Services",
+        formData.whatTheyNeed.join(", "),
+      );
+      submissionBody.append("Project Goals", formData.goals);
+      submissionBody.append("Selected Currency Context", currency);
+      submissionBody.append("Estimated Budget", formData.budget);
+      submissionBody.append("Target Timeline", formData.timeline);
+      submissionBody.append(
+        "Reference Websites",
+        formData.referenceWebsites || "None Provided",
+      );
+
+      // Optional: Formats subject line dynamically for effortless filtration
+      submissionBody.append(
+        "subject",
+        ` New Project Lead: ${formData.businessName}`,
+      );
+
+      const response = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        body: submissionBody,
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setIsSubmitted(true);
+      } else {
+        setFormError(data.message || "Something went wrong. Please try again.");
+      }
+    } catch (error) {
+      setFormError(
+        "Network communication failed. Check your internet connection.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const slideVariants: Variants = {
@@ -258,22 +336,36 @@ export default function ClientDiscoveryForm() {
       <div className="absolute top-6 right-6 z-50 flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full backdrop-blur-md">
         <Globe size={14} className="text-white/40" />
         <select
-        title="currency"
+          title="Country currency"
           value={currency}
           onChange={(e) => handleCurrencySwitch(e.target.value as CurrencyType)}
           className="bg-transparent text-[11px] font-semibold text-white/80 focus:outline-none cursor-pointer pr-1"
         >
-          <option value="USD" className="bg-[#111] text-white">USD ($)</option>
-          <option value="EUR" className="bg-[#111] text-white">EUR (€)</option>
-          <option value="GBP" className="bg-[#111] text-white">GBP (£)</option>
-          <option value="NGN" className="bg-[#111] text-white">NGN (₦)</option>
+          <option value="USD" className="bg-[#111] text-white">
+            USD ($)
+          </option>
+          <option value="EUR" className="bg-[#111] text-white">
+            EUR (€)
+          </option>
+          <option value="GBP" className="bg-[#111] text-white">
+            GBP (£)
+          </option>
+          <option value="NGN" className="bg-[#111] text-white">
+            NGN (₦)
+          </option>
         </select>
       </div>
 
       <div className="w-full max-w-2xl relative z-10 mt-10 sm:mt-0">
         {/* Header Section */}
         <div className="text-center mb-10">
-          <Image src="/stack-gate_red_on_black.png" alt="" width={36} height={36} className="rounded-full mx-auto mb-4 p-1 border border-[#FF1A1A]/30" />
+          <Image
+            src="/stack-gate_red_on_black.png"
+            alt=""
+            width={36}
+            height={36}
+            className="rounded-full mx-auto mb-4 p-1 border border-[#FF1A1A]/30"
+          />
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#FF1A1A]/30 bg-[#FF1A1A]/5 mb-4">
             <span className="text-[10px] uppercase tracking-[0.2em] font-semibold text-[#FF1A1A]">
               Client Discovery
@@ -504,7 +596,8 @@ export default function ClientDiscoveryForm() {
                         {formData.goals &&
                           !hasMinimumWords(formData.goals, 5) && (
                             <p className="text-red-400 text-xs mt-2">
-                              Please provide more details about your project goals (minimum 5 words).
+                              Please provide more details about your project
+                              goals (minimum 5 words).
                             </p>
                           )}
                       </div>
@@ -590,6 +683,13 @@ export default function ClientDiscoveryForm() {
                   </motion.div>
                 )}
 
+                {/* Error Banner Injection Layer */}
+                {formError && (
+                  <div className="p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-xs rounded-xl text-center font-medium animate-pulse">
+                    {formError}
+                  </div>
+                )}
+
                 {/* Actions & Buttons Footer Layer */}
                 <div className="flex flex-col-reverse sm:flex-row items-center justify-between pt-6 border-t border-white/5 mt-4">
                   {step > 1 ? (
@@ -621,7 +721,7 @@ export default function ClientDiscoveryForm() {
                     >
                       {isSubmitting ? (
                         <>
-                          Submitting...{" "}
+                          Submitting Lead...{" "}
                           <Loader2 size={16} className="animate-spin" />
                         </>
                       ) : (
