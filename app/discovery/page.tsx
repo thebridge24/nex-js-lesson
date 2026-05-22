@@ -476,6 +476,7 @@ function ClientDiscoveryFormContent() {
                         <input
                           type="text"
                           required
+                          autoFocus
                           value={formData.clientName}
                           onChange={(e) =>
                             updateField("clientName", e.target.value)
@@ -526,6 +527,7 @@ function ClientDiscoveryFormContent() {
                         <input
                           type="email"
                           required
+                          autoFocus
                           value={formData.email}
                           onChange={(e) => updateField("email", e.target.value)}
                           placeholder="example@domain.com"
