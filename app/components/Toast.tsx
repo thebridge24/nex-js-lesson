@@ -40,7 +40,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {children}
       
       {/* Toast Portal Layer */}
-      <div className="fixed bottom-6 right-0 sm:right-6 z-9999 flex flex-col gap-3 w-full max-w-sm pointer-events-none">
+      <div className="fixed top-4 sm:top-6 right-1/2 translate-x-1/2 sm:translate-x-0 sm:right-6 z-9999 flex flex-col gap-3 w-full max-w-[90vw] sm:max-w-sm pointer-events-none">
         <AnimatePresence>
           {toasts.map((toast) => (
             <motion.div
@@ -71,7 +71,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               </div>
 
               {/* Message Content */}
-              <div className="flex-1 text-xs md:text-sm font-medium text-white/90 leading-relaxed pr-2 pt-0.5">
+              <div className="flex-1 text-[10px] md:text-xs font-medium text-white/90 leading-relaxed pr-2 pt-0.5">
                 {toast.message}
               </div>
 
