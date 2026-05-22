@@ -28,7 +28,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     // Auto-remove toast after 4 seconds
     setTimeout(() => {
       setToasts((prev) => prev.filter((toast) => toast.id !== id));
-    }, 4000);
+    }, 3000);
   }, []);
 
   const removeToast = (id: string) => {
@@ -40,7 +40,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {children}
       
       {/* Toast Portal Layer */}
-      <div className="fixed bottom-6 right-6 z-9999 flex flex-col gap-3 w-full max-w-sm pointer-events-none">
+      <div className="fixed bottom-6 right-0 sm:right-6 z-9999 flex flex-col gap-3 w-full max-w-sm pointer-events-none">
         <AnimatePresence>
           {toasts.map((toast) => (
             <motion.div
