@@ -395,7 +395,7 @@ const nextStep = () => {
                         <label className="block text-xs uppercase tracking-wider text-white/40 mb-3 font-medium">
                           What services do you need from us? (Select Multiple) *
                         </label>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-h-70 overflow-y-auto pr-1">
                           {SERVICE_OPTIONS.map((service) => {
                             const isSelected =
                               formData.whatTheyNeed.includes(service);
