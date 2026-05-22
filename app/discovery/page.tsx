@@ -16,18 +16,7 @@ import {
   Globe,
 } from "lucide-react";
 import Image from "next/image";
-
-interface DiscoveryFormData {
-  clientName: string;
-  businessName: string;
-  email: string;
-  phone: string;
-  whatTheyNeed: string[];
-  goals: string;
-  budget: string;
-  timeline: string;
-  referenceWebsites: string;
-}
+import { ToastProvider, useToast } from "../components/Toast"; // Make sure path points correctly to Step 1 file
 
 type CurrencyType = "NGN" | "USD" | "EUR" | "GBP";
 
@@ -94,12 +83,13 @@ const TIMELINE_OPTIONS = [
   "Flexible / Long-term",
 ];
 
-export default function ClientDiscoveryForm() {
+function ClientDiscoveryFormContent() {
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [currency, setCurrency] = useState<CurrencyType>("USD");
-  const [formError, setFormError] = useState<string | null>(null);
+
+  const { showToast } = useToast(); // Initialize toaster hooks
 
   const [formData, setFormData] = useState({
     clientName: "",
@@ -118,12 +108,9 @@ export default function ClientDiscoveryForm() {
       try {
         const response = await fetch("https://ipapi.co/json/");
         const data = await response.json();
-
-        if (data.country_code === "NG") {
-          setCurrency("NGN");
-        } else if (data.country_code === "GB") {
-          setCurrency("GBP");
-        } else if (
+        if (data.country_code === "NG") setCurrency("NGN");
+        else if (data.country_code === "GB") setCurrency("GBP");
+        else if (
           [
             "AT",
             "BE",
@@ -147,9 +134,7 @@ export default function ClientDiscoveryForm() {
           ].includes(data.country_code)
         ) {
           setCurrency("EUR");
-        } else {
-          setCurrency("USD");
-        }
+        } else setCurrency("USD");
       } catch (error) {
         setCurrency("USD");
       }
@@ -165,11 +150,12 @@ export default function ClientDiscoveryForm() {
     } else {
       updateField("budget", "");
     }
+    showToast(`Switched currency workspace to ${targetCurrency}`, "info");
   };
 
-  const updateField = <K extends keyof DiscoveryFormData>(
+  const updateField = <K extends keyof typeof formData>(
     key: K,
-    value: DiscoveryFormData[K],
+    value: (typeof formData)[K],
   ) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
@@ -186,20 +172,88 @@ export default function ClientDiscoveryForm() {
     }
   };
 
-  const isValidEmail = (email: string) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const isValidEmail = (email: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const isValidPhone = (phone: string) =>
+    /^[0-9+\-\s()]{10,15}$/.test(phone.trim());
+  const hasMinimumWords = (text: string, minWords = 5) =>
+    text.trim().split(/\s+/).filter(Boolean).length >= minWords;
+  const isValidUrl = (url: string) => {
+    if (!url.trim()) return true;
+    return /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/i.test(
+      url.trim(),
+    );
   };
 
-  const isValidPhone = (phone: string) => {
-    return /^[0-9+\-\s()]{10,15}$/.test(phone.trim());
-  };
-
-  const hasMinimumWords = (text: string, minWords = 5) => {
-    return text.trim().split(/\s+/).filter(Boolean).length >= minWords;
+  // Explicit Toast-emitting validation function to explain blockings out loud to the user
+  const validateCurrentStepAndReport = (): boolean => {
+    if (step === 1) {
+      if (formData.clientName.trim().length < 3) {
+        showToast(
+          "Please enter your complete name (minimum 3 characters).",
+          "error",
+        );
+        return false;
+      }
+      if (formData.businessName.trim().length < 2) {
+        showToast("Please provide a valid Company or Business name.", "error");
+        return false;
+      }
+    }
+    if (step === 2) {
+      if (!isValidEmail(formData.email)) {
+        showToast("The email format looks incorrect. Please review.", "error");
+        return false;
+      }
+      if (!isValidPhone(formData.phone)) {
+        showToast("Please provide a valid 10-15 digit phone context.", "error");
+        return false;
+      }
+    }
+    if (step === 3) {
+      if (formData.whatTheyNeed.length === 0) {
+        showToast(
+          "Please select at least one digital service requirement.",
+          "error",
+        );
+        return false;
+      }
+      if (!hasMinimumWords(formData.goals, 5)) {
+        showToast(
+          "Please expand slightly on your project goals (minimum 5 words).",
+          "error",
+        );
+        return false;
+      }
+    }
+    if (step === 4) {
+      if (!formData.budget) {
+        showToast(
+          "Please choose an estimated parameters budget workspace tier.",
+          "error",
+        );
+        return false;
+      }
+      if (!formData.timeline) {
+        showToast(
+          "Please pick your expected target execution timeline.",
+          "error",
+        );
+        return false;
+      }
+      if (!isValidUrl(formData.referenceWebsites)) {
+        showToast(
+          "The optional reference website typed does not point to a valid domain link form.",
+          "error",
+        );
+        return false;
+      }
+    }
+    return true;
   };
 
   const nextStep = () => {
-    if (isStepInvalid()) return;
+    if (!validateCurrentStepAndReport()) return;
     setStep((s) => Math.min(s + 1, 4));
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -209,24 +263,13 @@ export default function ClientDiscoveryForm() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const isStepInvalid = () => {
-    switch (step) {
-      case 1:
-        return (
-          formData.clientName.trim().length < 3 ||
-          formData.businessName.trim().length < 2
-        );
-      case 2:
-        return !isValidEmail(formData.email) || !isValidPhone(formData.phone);
-      case 3:
-        return (
-          formData.whatTheyNeed.length === 0 ||
-          !hasMinimumWords(formData.goals, 5)
-        );
-      case 4:
-        return !formData.budget || !formData.timeline;
-      default:
-        return false;
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+    if (e.key === "Enter") {
+      if ((e.target as HTMLElement).tagName === "TEXTAREA") return;
+      if (step < 4) {
+        e.preventDefault();
+        nextStep();
+      }
     }
   };
 
@@ -242,27 +285,22 @@ export default function ClientDiscoveryForm() {
       timeline: "",
       referenceWebsites: "",
     });
-    setFormError(null);
     setStep(1);
     setIsSubmitted(false);
+    showToast("Form parameters refreshed successfully", "info");
   };
 
-  // Modern Web3Forms Submission logic utilizing state object properties directly
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isStepInvalid()) return;
+    if (!validateCurrentStepAndReport()) return;
 
     setIsSubmitting(true);
-    setFormError(null);
-
     try {
       const submissionBody = new FormData();
       submissionBody.append(
         "access_key",
         "2a3e336c-e518-482a-b637-f5a17556c704",
       );
-
-      // Clean up structured parameters for incoming layout design on dashboard/email
       submissionBody.append("Client Name", formData.clientName);
       submissionBody.append("Business Name", formData.businessName);
       submissionBody.append("Email Address", formData.email);
@@ -279,11 +317,9 @@ export default function ClientDiscoveryForm() {
         "Reference Websites",
         formData.referenceWebsites || "None Provided",
       );
-
-      // Optional: Formats subject line dynamically for effortless filtration
       submissionBody.append(
         "subject",
-        ` New Project Lead: ${formData.businessName}`,
+        `🚀 New Project Lead: ${formData.businessName}`,
       );
 
       const response = await fetch("https://api.web3forms.com/submit", {
@@ -292,15 +328,20 @@ export default function ClientDiscoveryForm() {
       });
 
       const data = await response.json();
-
       if (data.success) {
         setIsSubmitted(true);
+        showToast("Project parameters registered perfectly!", "success");
       } else {
-        setFormError(data.message || "Something went wrong. Please try again.");
+        showToast(
+          data.message ||
+            "Server setup declined submission. Verify entry properties.",
+          "error",
+        );
       }
     } catch (error) {
-      setFormError(
-        "Network communication failed. Check your internet connection.",
+      showToast(
+        "Network pipeline failure. Check your live internet connectivity setup.",
+        "error",
       );
     } finally {
       setIsSubmitting(false);
@@ -319,11 +360,9 @@ export default function ClientDiscoveryForm() {
 
   return (
     <main className="min-h-screen bg-black font-clash text-white flex flex-col items-center justify-center p-4 md:px-6 py-12 relative overflow-hidden">
-      {/* Background Lighting Effects */}
       <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[50%] bg-[#FF1A1A]/20 rounded-full blur-[150px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#990000]/20 rounded-full blur-[120px] pointer-events-none" />
 
-      {/* Floating Interactive Currency Selector */}
       <div className="absolute top-6 right-6 z-50 flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full backdrop-blur-md">
         <Globe size={14} className="text-white/40" />
         <select
@@ -348,7 +387,6 @@ export default function ClientDiscoveryForm() {
       </div>
 
       <div className="w-full max-w-2xl relative z-10 mt-10 sm:mt-0">
-        {/* Header Section */}
         <div className="text-center mb-10">
           <Image
             src="/stack-gate_red_on_black.png"
@@ -366,12 +404,11 @@ export default function ClientDiscoveryForm() {
             Let{`'`}s Plan Your <span className="text-[#FF1A1A]">Project</span>
           </h1>
           <p className="text-white/50 text-sm mt-2 max-w-sm mx-auto">
-            Answer a few simple questions so we can understand your design and
-            build requirements.
+            Answer a few simple questions so we can understand your design
+            requirements.
           </p>
         </div>
 
-        {/* Progress Tracker */}
         {!isSubmitted && (
           <div className="w-full h-0.5 md:h-1 bg-white/10 mb-8 rounded-full overflow-hidden">
             <motion.div
@@ -382,11 +419,9 @@ export default function ClientDiscoveryForm() {
           </div>
         )}
 
-        {/* Form Body Container */}
         <div className="bg-[#111111]/70 backdrop-blur-2xl border border-white/10 rounded-4xl p-6 md:p-10 shadow-2xl relative">
           <AnimatePresence mode="wait">
             {isSubmitted ? (
-              /* Success Messaging Layer */
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -401,8 +436,7 @@ export default function ClientDiscoveryForm() {
                   </h2>
                   <p className="text-white/60 text-sm max-w-md mx-auto">
                     Thank you, {formData.clientName}. We have received your
-                    project details safely. Our team will review your
-                    information and get back to you within 24 hours.
+                    project details safely.
                   </p>
                 </div>
                 <div className="pt-4">
@@ -416,8 +450,11 @@ export default function ClientDiscoveryForm() {
                 </div>
               </motion.div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {/* STEP 1: Basic Info */}
+              <form
+                onSubmit={handleSubmit}
+                onKeyDown={handleKeyDown}
+                className="space-y-6"
+              >
                 {step === 1 && (
                   <motion.div
                     key="step1"
@@ -431,7 +468,6 @@ export default function ClientDiscoveryForm() {
                       <User className="text-[#FF1A1A]" size={20} />
                       <h3 className="font-medium text-lg">About You</h3>
                     </div>
-
                     <div className="space-y-4">
                       <div>
                         <label className="block text-xs uppercase tracking-wider text-white/40 mb-2 font-medium">
@@ -448,7 +484,6 @@ export default function ClientDiscoveryForm() {
                           className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-[#FF1A1A] focus:bg-white/8 transition-all"
                         />
                       </div>
-
                       <div>
                         <label className="block text-xs uppercase tracking-wider text-white/40 mb-2 font-medium">
                           Company or Business Name *
@@ -468,7 +503,6 @@ export default function ClientDiscoveryForm() {
                   </motion.div>
                 )}
 
-                {/* STEP 2: Contact Info */}
                 {step === 2 && (
                   <motion.div
                     key="step2"
@@ -484,7 +518,6 @@ export default function ClientDiscoveryForm() {
                         Contact Information
                       </h3>
                     </div>
-
                     <div className="space-y-4">
                       <div>
                         <label className="block text-xs uppercase tracking-wider text-white/40 mb-2 font-medium">
@@ -498,13 +531,7 @@ export default function ClientDiscoveryForm() {
                           placeholder="example@domain.com"
                           className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-[#FF1A1A] focus:bg-white/8 transition-all"
                         />
-                        {formData.email && !isValidEmail(formData.email) && (
-                          <p className="text-red-400 text-xs mt-2">
-                            Please enter a valid email address.
-                          </p>
-                        )}
                       </div>
-
                       <div>
                         <label className="block text-xs uppercase tracking-wider text-white/40 mb-2 font-medium">
                           Phone / WhatsApp Number *
@@ -517,17 +544,11 @@ export default function ClientDiscoveryForm() {
                           placeholder="Enter phone number"
                           className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-[#FF1A1A] focus:bg-white/8 transition-all"
                         />
-                        {formData.phone && !isValidPhone(formData.phone) && (
-                          <p className="text-red-400 text-xs mt-2">
-                            Please enter a valid phone number.
-                          </p>
-                        )}
                       </div>
                     </div>
                   </motion.div>
                 )}
 
-                {/* STEP 3: Project Requirements */}
                 {step === 3 && (
                   <motion.div
                     key="step3"
@@ -541,11 +562,10 @@ export default function ClientDiscoveryForm() {
                       <Briefcase className="text-[#FF1A1A]" size={20} />
                       <h3 className="font-medium text-lg">Project Details</h3>
                     </div>
-
                     <div className="space-y-4">
                       <div>
                         <label className="block text-xs uppercase tracking-wider text-white/40 mb-3 font-medium">
-                          What services do you need from us? (Select Multiple) *
+                          What services do you need from us? *
                         </label>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-h-70 overflow-y-auto pr-1">
                           {SERVICE_OPTIONS.map((service) => {
@@ -556,11 +576,7 @@ export default function ClientDiscoveryForm() {
                                 type="button"
                                 key={service}
                                 onClick={() => toggleService(service)}
-                                className={`p-4 rounded-xl border text-left text-xs font-medium transition-all flex items-center justify-between ${
-                                  isSelected
-                                    ? "bg-[#FF1A1A]/10 border-[#FF1A1A] text-white"
-                                    : "bg-white/5 border-white/10 text-white/60 hover:border-white/30"
-                                }`}
+                                className={`p-4 rounded-xl border text-left text-xs font-medium transition-all flex items-center justify-between ${isSelected ? "bg-[#FF1A1A]/10 border-[#FF1A1A] text-white" : "bg-white/5 border-white/10 text-white/60 hover:border-white/30"}`}
                               >
                                 <span className="truncate mr-2">{service}</span>
                                 {isSelected && (
@@ -571,7 +587,6 @@ export default function ClientDiscoveryForm() {
                           })}
                         </div>
                       </div>
-
                       <div className="mt-8">
                         <label className="block text-xs uppercase tracking-wider text-white/40 mb-2 font-medium">
                           What are the main goals of this project? *
@@ -581,22 +596,14 @@ export default function ClientDiscoveryForm() {
                           rows={3}
                           value={formData.goals}
                           onChange={(e) => updateField("goals", e.target.value)}
-                          placeholder="Please briefly explain what you want your website or app to do..."
+                          placeholder="Please briefly explain what you want your website to do..."
                           className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 focus:outline-none focus:border-[#FF1A1A] focus:bg-white/8 transition-all resize-none"
                         />
-                        {formData.goals &&
-                          !hasMinimumWords(formData.goals, 5) && (
-                            <p className="text-red-400 text-xs mt-2">
-                              Please provide more details about your project
-                              goals (minimum 5 words).
-                            </p>
-                          )}
                       </div>
                     </div>
                   </motion.div>
                 )}
 
-                {/* STEP 4: Parameters */}
                 {step === 4 && (
                   <motion.div
                     key="step4"
@@ -610,7 +617,6 @@ export default function ClientDiscoveryForm() {
                       <Target className="text-[#FF1A1A]" size={20} />
                       <h3 className="font-medium text-lg">Budget & Timeline</h3>
                     </div>
-
                     <div className="space-y-5">
                       <div>
                         <label className="block text-xs uppercase tracking-wider text-white/40 mb-3 font-medium">
@@ -622,18 +628,13 @@ export default function ClientDiscoveryForm() {
                               type="button"
                               key={budget}
                               onClick={() => updateField("budget", budget)}
-                              className={`px-4 py-2.5 rounded-lg border text-xs transition-all ${
-                                formData.budget === budget
-                                  ? "bg-white text-black border-white font-semibold"
-                                  : "bg-white/5 border-white/10 text-white/70 hover:border-white/30"
-                              }`}
+                              className={`px-4 py-2.5 rounded-lg border text-xs transition-all ${formData.budget === budget ? "bg-white text-black border-white font-semibold" : "bg-white/5 border-white/10 text-white/70 hover:border-white/30"}`}
                             >
                               {budget}
                             </button>
                           ))}
                         </div>
                       </div>
-
                       <div>
                         <label className="block text-xs uppercase tracking-wider text-white/40 mb-3 font-medium">
                           When do you want this to launch? *
@@ -644,18 +645,13 @@ export default function ClientDiscoveryForm() {
                               type="button"
                               key={time}
                               onClick={() => updateField("timeline", time)}
-                              className={`px-4 py-2.5 rounded-lg border text-xs transition-all ${
-                                formData.timeline === time
-                                  ? "bg-white text-black border-white font-semibold"
-                                  : "bg-white/5 border-white/10 text-white/70 hover:border-white/30"
-                              }`}
+                              className={`px-4 py-2.5 rounded-lg border text-xs transition-all ${formData.timeline === time ? "bg-white text-black border-white font-semibold" : "bg-white/5 border-white/10 text-white/70 hover:border-white/30"}`}
                             >
                               {time}
                             </button>
                           ))}
                         </div>
                       </div>
-
                       <div>
                         <label className="block text-xs uppercase tracking-wider text-white/40 mb-2 font-medium">
                           Example Websites You Like (Optional)
@@ -674,14 +670,6 @@ export default function ClientDiscoveryForm() {
                   </motion.div>
                 )}
 
-                {/* Error Banner Injection Layer */}
-                {formError && (
-                  <div className="p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-xs rounded-xl text-center font-medium animate-pulse">
-                    {formError}
-                  </div>
-                )}
-
-                {/* Actions & Buttons Footer Layer */}
                 <div className="flex flex-col-reverse sm:flex-row items-center justify-between pt-6 border-t border-white/5 mt-4">
                   {step > 1 ? (
                     <button
@@ -699,16 +687,15 @@ export default function ClientDiscoveryForm() {
                     <button
                       type="button"
                       onClick={nextStep}
-                      disabled={isStepInvalid()}
-                      className="flex items-center gap-2 text-xs font-semibold px-5 py-3 bg-[#FF1A1A] hover:bg-[#C00000] text-white rounded-xl transition-all disabled:opacity-30 disabled:pointer-events-none"
+                      className="flex items-center gap-2 text-xs font-semibold px-5 py-3 bg-[#FF1A1A] hover:bg-[#C00000] text-white rounded-xl transition-all"
                     >
                       Continue <ArrowRight size={16} />
                     </button>
                   ) : (
                     <button
                       type="submit"
-                      disabled={isSubmitting || isStepInvalid()}
-                      className="flex items-center gap-2 text-xs font-bold px-6 py-3 bg-white text-black hover:bg-[#FF1A1A] hover:text-white rounded-xl transition-all disabled:opacity-30 disabled:pointer-events-none"
+                      disabled={isSubmitting}
+                      className="flex items-center gap-2 text-xs font-bold px-6 py-3 bg-white text-black hover:bg-[#FF1A1A] hover:text-white rounded-xl transition-all disabled:opacity-30"
                     >
                       {isSubmitting ? (
                         <>
@@ -729,5 +716,14 @@ export default function ClientDiscoveryForm() {
         </div>
       </div>
     </main>
+  );
+}
+
+// Wrapper component to ensure layout hooks have deep context access
+export default function ClientDiscoveryForm() {
+  return (
+    <ToastProvider>
+      <ClientDiscoveryFormContent />
+    </ToastProvider>
   );
 }

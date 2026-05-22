@@ -1,8 +1,11 @@
-import React from 'react'
-import ClientDiscoveryForm from './discovery/page'
+import React from "react";
+import ClientDiscoveryForm from "./discovery/page";
+import { ToastProvider } from "./components/Toast";
 
 export default function page() {
   return (
-    <div className=''><ClientDiscoveryForm /></div>
-  )
+    <ToastProvider>
+      <ClientDiscoveryForm />
+    </ToastProvider>
+  );
 }
