@@ -261,16 +261,7 @@ export default function ClientDiscoveryForm() {
         "access_key",
         "2a3e336c-e518-482a-b637-f5a17556c704",
       );
-      submissionBody.append(
-        "subject",
-        `New Project Lead: ${formData.businessName}`,
-      );
-      submissionBody.append(
-        "from_name",
-        `${formData.clientName} | Discovery Form`,
-      );
-      submissionBody.append("replyto", formData.email); // Direct replies to client
-      submissionBody.append("theme", "red");
+
       // Clean up structured parameters for incoming layout design on dashboard/email
       submissionBody.append("Client Name", formData.clientName);
       submissionBody.append("Business Name", formData.businessName);
