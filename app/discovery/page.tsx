@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import {
   User,
@@ -12,6 +13,7 @@ import {
   Loader2,
   Phone,
   Check,
+  Globe,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -26,6 +28,9 @@ interface DiscoveryFormData {
   timeline: string;
   referenceWebsites: string;
 }
+
+type CurrencyType = "NGN" | "USD" | "EUR" | "GBP";
+
 // Core services — written in simple business-friendly language
 const SERVICE_OPTIONS = [
   "Business Website Design",
@@ -48,15 +53,41 @@ const SERVICE_OPTIONS = [
   "Website Speed & Performance Optimization",
 ];
 
-// Screened out anything less than 500k
-const BUDGET_OPTIONS = [
-  "₦500,000 - ₦1,500,000",
-  "₦1,500,000 - ₦3,000,000",
-  "₦3,000,000 - ₦5,000,000",
-  "₦5,000,000 - ₦10,000,000",
-  "₦10,000,000 - ₦20,000,000",
-  "₦20,000,000+",
-];
+// Premium scaled budget matrix for international anchoring
+const BUDGET_DATA: Record<CurrencyType, string[]> = {
+  NGN: [
+    "₦500,000 - ₦1,500,000",
+    "₦1,500,000 - ₦3,000,000",
+    "₦3,000,000 - ₦5,000,000",
+    "₦5,000,000 - ₦10,000,000",
+    "₦10,000,000 - ₦20,000,000",
+    "₦20,000,000+",
+  ],
+  USD: [
+    "$500 - $1,500",
+    "$1,500 - $3,000",
+    "$3,000 - $5,000",
+    "$5,000 - $10,000",
+    "$10,000 - $20,000",
+    "$20,000+",
+  ],
+  EUR: [
+    "€500 - €1,500",
+    "€1,500 - €3,000",
+    "€3,000 - €5,000",
+    "€5,000 - €10,000",
+    "€10,000 - €20,000",
+    "€20,000+",
+  ],
+  GBP: [
+    "£500 - £1,500",
+    "£1,500 - £3,000",
+    "£3,000 - £5,000",
+    "£5,000 - £10,000",
+    "£10,000 - £20,000",
+    "£20,000+",
+  ],
+};
 
 const TIMELINE_OPTIONS = [
   "Urgent (Less than 2 weeks)",
@@ -69,6 +100,7 @@ export default function ClientDiscoveryForm() {
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [currency, setCurrency] = useState<CurrencyType>("USD"); // Default to high-ticket USD baseline globally
 
   const [formData, setFormData] = useState({
     clientName: "",
@@ -81,6 +113,41 @@ export default function ClientDiscoveryForm() {
     timeline: "",
     referenceWebsites: "",
   });
+
+  // Automated IP-geolocation lookup
+  useEffect(() => {
+    async function detectClientCurrency() {
+      try {
+        const response = await fetch("https://ipapi.co/json/");
+        const data = await response.json();
+        
+        if (data.country_code === "NG") {
+          setCurrency("NGN");
+        } else if (data.country_code === "GB") {
+          setCurrency("GBP");
+        } else if (["AT", "BE", "CY", "EE", "FI", "FR", "DE", "GR", "IE", "IT", "LV", "LT", "LU", "MT", "NL", "PT", "SK", "SI", "ES"].includes(data.country_code)) {
+          setCurrency("EUR");
+        } else {
+          setCurrency("USD");
+        }
+      } catch (error) {
+        // Fall back cleanly to premium USD if lookup is blocked by extension
+        setCurrency("USD");
+      }
+    }
+    detectClientCurrency();
+  }, []);
+
+  // Sync chosen budget option smoothly if currency changes mid-session
+  const handleCurrencySwitch = (targetCurrency: CurrencyType) => {
+    const currentIndex = BUDGET_DATA[currency].indexOf(formData.budget);
+    setCurrency(targetCurrency);
+    if (currentIndex !== -1) {
+      updateField("budget", BUDGET_DATA[targetCurrency][currentIndex]);
+    } else {
+      updateField("budget", "");
+    }
+  };
 
   const updateField = <K extends keyof DiscoveryFormData>(
     key: K,
@@ -100,6 +167,7 @@ export default function ClientDiscoveryForm() {
       updateField("whatTheyNeed", [...current, service]);
     }
   };
+
   const isValidEmail = (email: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
@@ -112,26 +180,17 @@ export default function ClientDiscoveryForm() {
     return text.trim().split(/\s+/).filter(Boolean).length >= minWords;
   };
 
-const nextStep = () => {
-  if (isStepInvalid()) return;
-
-  setStep((s) => Math.min(s + 1, 4));
-
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth",
-  });
-};
+  const nextStep = () => {
+    if (isStepInvalid()) return;
+    setStep((s) => Math.min(s + 1, 4));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const prevStep = () => {
     setStep((s) => Math.max(s - 1, 1));
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
-  // Validation function to physically protect step access
+
   const isStepInvalid = () => {
     switch (step) {
       case 1:
@@ -139,25 +198,20 @@ const nextStep = () => {
           formData.clientName.trim().length < 3 ||
           formData.businessName.trim().length < 2
         );
-
       case 2:
         return !isValidEmail(formData.email) || !isValidPhone(formData.phone);
-
       case 3:
         return (
           formData.whatTheyNeed.length === 0 ||
           !hasMinimumWords(formData.goals, 5)
         );
-
       case 4:
         return !formData.budget || !formData.timeline;
-
       default:
         return false;
     }
   };
 
-  // Completely resets state when going back home
   const handleReset = () => {
     setFormData({
       clientName: "",
@@ -176,10 +230,9 @@ const nextStep = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isStepInvalid()) return; // Hard wall security check
+    if (isStepInvalid()) return;
 
     setIsSubmitting(true);
-    // Simulate processing handshake
     await new Promise((resolve) => setTimeout(resolve, 2000));
     setIsSubmitting(false);
     setIsSubmitted(true);
@@ -201,10 +254,26 @@ const nextStep = () => {
       <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[50%] bg-[#FF1A1A]/20 rounded-full blur-[150px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#990000]/20 rounded-full blur-[120px] pointer-events-none" />
 
-      <div className="w-full max-w-2xl relative z-10">
+      {/* Floating Interactive Currency Selector */}
+      <div className="absolute top-6 right-6 z-50 flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full backdrop-blur-md">
+        <Globe size={14} className="text-white/40" />
+        <select
+        title="currency"
+          value={currency}
+          onChange={(e) => handleCurrencySwitch(e.target.value as CurrencyType)}
+          className="bg-transparent text-[11px] font-semibold text-white/80 focus:outline-none cursor-pointer pr-1"
+        >
+          <option value="USD" className="bg-[#111] text-white">USD ($)</option>
+          <option value="EUR" className="bg-[#111] text-white">EUR (€)</option>
+          <option value="GBP" className="bg-[#111] text-white">GBP (£)</option>
+          <option value="NGN" className="bg-[#111] text-white">NGN (₦)</option>
+        </select>
+      </div>
+
+      <div className="w-full max-w-2xl relative z-10 mt-10 sm:mt-0">
         {/* Header Section */}
         <div className="text-center mb-10">
-            <Image src="/stack-gate_red_on_black.png" alt="" width={36} height={36} className="rounded-full mx-auto mb-4 p-1 border border-[#FF1A1A]/30" />
+          <Image src="/stack-gate_red_on_black.png" alt="" width={36} height={36} className="rounded-full mx-auto mb-4 p-1 border border-[#FF1A1A]/30" />
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#FF1A1A]/30 bg-[#FF1A1A]/5 mb-4">
             <span className="text-[10px] uppercase tracking-[0.2em] font-semibold text-[#FF1A1A]">
               Client Discovery
@@ -410,20 +479,13 @@ const nextStep = () => {
                                     : "bg-white/5 border-white/10 text-white/60 hover:border-white/30"
                                 }`}
                               >
-                                {service}
+                                <span className="truncate mr-2">{service}</span>
                                 {isSelected && (
-                                  <Check className="size-4 rounded-full text-[#FF1A1A]" />
+                                  <Check className="size-4 shrink-0 text-[#FF1A1A]" />
                                 )}
                               </button>
                             );
                           })}
-                          {formData.goals &&
-                            !hasMinimumWords(formData.goals, 5) && (
-                              <p className="text-red-400 text-xs mt-2">
-                                Please provide more details about your project
-                                goals.
-                              </p>
-                            )}
                         </div>
                       </div>
 
@@ -439,6 +501,12 @@ const nextStep = () => {
                           placeholder="Please briefly explain what you want your website or app to do..."
                           className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 focus:outline-none focus:border-[#FF1A1A] focus:bg-white/8 transition-all resize-none"
                         />
+                        {formData.goals &&
+                          !hasMinimumWords(formData.goals, 5) && (
+                            <p className="text-red-400 text-xs mt-2">
+                              Please provide more details about your project goals (minimum 5 words).
+                            </p>
+                          )}
                       </div>
                     </div>
                   </motion.div>
@@ -462,10 +530,10 @@ const nextStep = () => {
                     <div className="space-y-5">
                       <div>
                         <label className="block text-xs uppercase tracking-wider text-white/40 mb-3 font-medium">
-                          Estimated Project Budget *
+                          Estimated Project Budget ({currency}) *
                         </label>
                         <div className="flex flex-wrap gap-2">
-                          {BUDGET_OPTIONS.map((budget) => (
+                          {BUDGET_DATA[currency].map((budget) => (
                             <button
                               type="button"
                               key={budget}
